@@ -1,73 +1,102 @@
-import React, { Component } from "react";
-import SimpleStorageContract from "./contracts/SimpleStorage.json";
-import getWeb3 from "./getWeb3";
+import React, { useContext, useState } from 'react';
+import { web3Context } from './context/web3Context';
 
-import "./App.css";
+import { todoContext } from './context/todoContext';
 
-class App extends Component {
-  state = { storageValue: 0, web3: null, accounts: null, contract: null };
+// class App extends Component {
+//   state = { storageValue: 0, web3: null, accounts: null, contract: null };
 
-  componentDidMount = async () => {
-    try {
-      // Get network provider and web3 instance.
-      const web3 = await getWeb3();
+//   componentDidMount = async () => {};
 
-      // Use web3 to get the user's accounts.
-      const accounts = await web3.eth.getAccounts();
+//   runExample = async () => {
+//     const { accounts, contract } = this.state;
 
-      // Get the contract instance.
-      const networkId = await web3.eth.net.getId();
-      const deployedNetwork = SimpleStorageContract.networks[networkId];
-      const instance = new web3.eth.Contract(
-        SimpleStorageContract.abi,
-        deployedNetwork && deployedNetwork.address,
-      );
+//     // Stores a given value, 5 by default.
+//     await contract.methods.set(5).send({ from: accounts[0] });
 
-      // Set web3, accounts, and contract to the state, and then proceed with an
-      // example of interacting with the contract's methods.
-      this.setState({ web3, accounts, contract: instance }, this.runExample);
-    } catch (error) {
-      // Catch any errors for any of the above operations.
-      alert(
-        `Failed to load web3, accounts, or contract. Check console for details.`,
-      );
-      console.error(error);
-    }
+//     // Get the value from the contract to prove it worked.
+//     const response = await contract.methods.get().call();
+
+//     // Update state with the result.
+//     this.setState({ storageValue: response });
+//   };
+
+//   render() {}
+// }
+
+const App = () => {
+  const web3Ctx = useContext(web3Context);
+  const todoCtx = useContext(todoContext);
+
+  const [text, setText] = useState('');
+  const [dueDate, setDueDate] = useState('');
+
+  const submitFormHandler = (e) => {
+    e.preventDefault();
+
+    todoCtx.addNewTask(text, dueDate);
+    setText('');
+    setDueDate('');
   };
-
-  runExample = async () => {
-    const { accounts, contract } = this.state;
-
-    // Stores a given value, 5 by default.
-    await contract.methods.set(5).send({ from: accounts[0] });
-
-    // Get the value from the contract to prove it worked.
-    const response = await contract.methods.get().call();
-
-    // Update state with the result.
-    this.setState({ storageValue: response });
-  };
-
-  render() {
-    if (!this.state.web3) {
-      return <div>Loading Web3, accounts, and contract...</div>;
-    }
-    return (
-      <div className="App">
-        <h1>Good to Go!</h1>
-        <p>Your Truffle Box is installed and ready.</p>
-        <h2>Smart Contract Example</h2>
-        <p>
-          If your contracts compiled and migrated successfully, below will show
-          a stored value of 5 (by default).
-        </p>
-        <p>
-          Try changing the value stored on <strong>line 42</strong> of App.js.
-        </p>
-        <div>The stored value is: {this.state.storageValue}</div>
-      </div>
-    );
+  if (!web3Ctx.web3) {
+    return <div>Loading Web3, accounts, and contract...</div>;
   }
-}
+  return (
+    <div>
+      <form onSubmit={submitFormHandler}>
+        <legend>Add task</legend>
+        <fieldset>
+          <div>
+            <label>Enter your task: </label>
+            <input
+              onChange={(e) => {
+                setText(e.target.value);
+              }}
+            />
+          </div>
+          <div>
+            <label>Due date: </label>
+            <input
+              onChange={(e) => {
+                setDueDate(e.target.value);
+              }}
+              className="w-[full]"
+            />
+          </div>
+          <button type="submit">Add</button>
+        </fieldset>
+      </form>
+
+      <table className="border-[1px] border-black border-solid">
+        <thead>
+          <tr>
+            <th>Completed</th>
+            <th>Task</th>
+            <th>Due date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {todoCtx.tasks.map((task, index) => {
+            return (
+              <tr>
+                <tr>
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onClick={() => {
+                      todoCtx.updateToggled(index);
+                    }}
+                  />
+                </tr>
+                <td>{task.title}</td>
+                <td>{task.dueIn}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export default App;
